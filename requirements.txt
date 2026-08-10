@@ -4,3 +4,6 @@ httpx
 pydantic-settings
 python-dotenv
 pyjwt
+sqlalchemy
+psycopg[binary]
+alembic

@@ -7,6 +7,8 @@ from fastapi.responses import RedirectResponse
 from urllib.parse import urlencode
 from datetime import datetime, timezone, timedelta
 from jwt import encode
+import sqlalchemy as sa
+from app.database import user_table, connected_accounts_table, connection
 load_dotenv()
 
 client_id = os.getenv('GITHUB_CLIENT_ID') 
@@ -82,6 +84,20 @@ async def callback_github(request: Request, code: str, state: str):
             break
     if email is None:
         raise HTTPException(status_code=400, detail="Failed to obtain email from Github")
+    stmt = sa.select(connected_accounts_table).where(connected_accounts_table.c.provider == "github",
+                                                     connected_accounts_table.c.provider_id == github_id)
+    result = connection.execute(stmt)
+    row = result.first()
+    if row is None:
+        created_at = datetime.now(timezone.utc)
+        stmt1 = sa.insert(user_table).values(email=email, username=login, created_at=created_at)
+        result = connection.execute(stmt1)
+        primary_key_user_table = result.inserted_primary_key[0]
+        stmt2 = sa.insert(connected_accounts_table).values(provider="github", provider_id=github_id, created_at=created_at, user_id=primary_key_user_table)
+        result = connection.execute(stmt2)
+    else:
+        print("User has already registered")
+    connection.commit()
     return {"message" : "Succesfully got user's data from Github"}
 def create_access_token(user_id: int):
     payload = {"sub" : str(user_id), "exp" : datetime.now(timezone.utc) + timedelta(minutes=int(ACCESS_TOKEN_EXPIRE_MINUTES)), "iat": datetime.now(timezone.utc)}
