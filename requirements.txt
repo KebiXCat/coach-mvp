@@ -7,3 +7,4 @@ pyjwt
 sqlalchemy
 psycopg[binary]
 alembic
+cryptography

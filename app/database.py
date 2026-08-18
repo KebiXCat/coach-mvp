@@ -5,7 +5,12 @@ from dotenv import load_dotenv
 load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
 engine = create_engine(DATABASE_URL)
-connection = engine.connect()
+def get_db():
+    conn = engine.connect()
+    try:
+        yield conn
+    finally:
+        conn.close()
 metadata = MetaData()
 user_table = sa.Table(
     "users",
@@ -13,6 +18,7 @@ user_table = sa.Table(
     sa.Column("id", sa.Integer, primary_key=True),
     sa.Column("email", sa.String),
     sa.Column("username", sa.String),
+    sa.Column("avatar_url", sa.String),
     sa.Column("created_at", sa.DateTime)
 )
 connected_accounts_table = sa.Table(
@@ -22,5 +28,6 @@ connected_accounts_table = sa.Table(
     sa.Column("user_id", sa.Integer, sa.ForeignKey("users.id")),
     sa.Column("provider", sa.String),
     sa.Column("provider_id", sa.Integer),
+    sa.Column("access_token", sa.String),
     sa.Column("created_at", sa.DateTime)
 )
